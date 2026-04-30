@@ -1,0 +1,54 @@
+[2026-04-21 11:03:49] local.INFO: 📦 Webhook commande reçu {"event":"order.periodic_sync","order_id":586} 
+[2026-04-21 11:03:49] local.INFO: ⚡ Exécution directe de la synchronisation de la commande #586  
+[2026-04-21 11:03:49] local.INFO: 🚀 SyncSingleOrderJob started {"wp_order_id":586} 
+[2026-04-21 11:03:49] local.INFO: 🔍 Fetching order #586 from WordPress  
+[2026-04-21 11:03:52] local.INFO: ✅ Order #586 fetched {"order_number":"586","total":"60000","items":2} 
+[2026-04-21 11:03:52] local.INFO: 📝 Order updated {"order_id":27,"wp_order_id":586,"total":"60000.00"} 
+[2026-04-21 11:03:55] local.INFO: Brands retrieved via custom endpoint {"count":2} 
+[2026-04-21 11:03:55] local.INFO: ✅ Created 2 items for order #27 {"count":2} 
+[2026-04-21 11:03:55] local.INFO: 🔄 Syncing creators for order #27  
+[2026-04-21 11:03:55] local.INFO: 📦 Found 2 brands in order #27  
+[2026-04-21 11:03:55] local.INFO: 💰 Creator #2 (Louis Vuitton) - Total: 50000 (1 products)  
+[2026-04-21 11:03:55] local.INFO: ✅ Successfully synced creator #2 with order #27  
+[2026-04-21 11:03:55] local.INFO: 💰 Creator #9 (Addidas) - Total: 10000 (1 products)  
+[2026-04-21 11:03:55] local.INFO: ✅ Successfully synced creator #9 with order #27  
+[2026-04-21 11:03:55] local.INFO: ✅ Synced 2 creators for order #27  
+[2026-04-21 11:03:55] local.INFO: ✅ SyncSingleOrderJob completed {"wp_order_id":586,"order_id":27,"creators_synced":2} 
+[2026-04-21 11:03:55] local.INFO: ✅ Commande #586 synchronisée avec succès  
+[2026-04-21 11:03:55] local.INFO: 📦 Commande avec créateurs reçue {"order_id":586,"creators_count":1} 
+[2026-04-21 11:03:55] local.INFO: 🚀 SyncOrderCreatorsJob pour commande #27  
+[2026-04-21 11:03:55] local.INFO: 🔄 Syncing creators for order #27  
+[2026-04-21 11:03:55] local.INFO: 📦 Found 2 brands in order #27  
+[2026-04-21 11:03:55] local.INFO: 💰 Creator #2 (Louis Vuitton) - Total: 50000 (1 products)  
+[2026-04-21 11:03:55] local.INFO: ✅ Successfully synced creator #2 with order #27  
+[2026-04-21 11:03:55] local.INFO: 💰 Creator #9 (Addidas) - Total: 10000 (1 products)  
+[2026-04-21 11:03:55] local.INFO: ✅ Successfully synced creator #9 with order #27  
+[2026-04-21 11:03:55] local.INFO: ✅ Synced 2 creators for order #27  
+[2026-04-21 11:03:55] local.INFO: ✅ Sync terminé: Synced 2 creators {"order_id":27,"creators_synced":2} 
+[2026-04-21 16:38:59] local.INFO: 📦 Webhook commande reçu {"event":"order.periodic_sync","order_id":586} 
+[2026-04-21 16:38:59] local.INFO: ⚡ Exécution directe de la synchronisation de la commande #586  
+[2026-04-21 16:38:59] local.INFO: 🚀 SyncSingleOrderJob started {"wp_order_id":586} 
+[2026-04-21 16:38:59] local.INFO: 🔍 Fetching order #586 from WordPress  
+[2026-04-21 16:39:14] local.INFO: ✅ Order #586 fetched {"order_number":"586","total":"60000","items":2} 
+[2026-04-21 16:39:14] local.INFO: 📝 Order updated {"order_id":27,"wp_order_id":586,"total":"60000.00"} 
+[2026-04-21 16:39:21] local.INFO: Brands retrieved via custom endpoint {"count":2} 
+[2026-04-21 16:39:21] local.INFO: ✅ Created 2 items for order #27 {"count":2} 
+[2026-04-21 16:39:21] local.INFO: 🔄 Syncing creators for order #27  
+[2026-04-21 16:39:21] local.INFO: 📦 Found 2 brands in order #27  
+[2026-04-21 16:39:21] local.INFO: 💰 Creator #2 (Louis Vuitton) - Total: 50000 (1 products)  
+[2026-04-21 16:39:21] local.INFO: ✅ Successfully synced creator #2 with order #27  
+[2026-04-21 16:39:21] local.INFO: 💰 Creator #9 (Addidas) - Total: 10000 (1 products)  
+[2026-04-21 16:39:21] local.INFO: ✅ Successfully synced creator #9 with order #27  
+[2026-04-21 16:39:21] local.INFO: ✅ Synced 2 creators for order #27  
+[2026-04-21 16:39:21] local.INFO: ✅ SyncSingleOrderJob completed {"wp_order_id":586,"order_id":27,"creators_synced":2} 
+[2026-04-21 16:39:21] local.INFO: ✅ Commande #586 synchronisée avec succès  
+[2026-04-21 16:39:21] local.INFO: 📦 Commande avec créateurs reçue {"order_id":586,"creators_count":1} 
+[2026-04-21 16:39:21] local.INFO: 🚀 SyncOrderCreatorsJob pour commande #27  
+[2026-04-21 16:39:21] local.INFO: 🔄 Syncing creators for order #27  
+[2026-04-21 16:39:21] local.INFO: 📦 Found 2 brands in order #27  
+[2026-04-21 16:39:21] local.INFO: 💰 Creator #2 (Louis Vuitton) - Total: 50000 (1 products)  
+[2026-04-21 16:39:21] local.INFO: ✅ Successfully synced creator #2 with order #27  
+[2026-04-21 16:39:21] local.INFO: 💰 Creator #9 (Addidas) - Total: 10000 (1 products)  
+[2026-04-21 16:39:21] local.INFO: ✅ Successfully synced creator #9 with order #27  
+[2026-04-21 16:39:21] local.INFO: ✅ Synced 2 creators for order #27  
+[2026-04-21 16:39:21] local.INFO: ✅ Sync terminé: Synced 2 creators {"order_id":27,"creators_synced":2} 
