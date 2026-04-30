@@ -50,4 +50,14 @@ return [
         'retry_attempts' => env('WORDPRESS_RETRY_ATTEMPTS', 3),
         'retry_delay' => env('WORDPRESS_RETRY_DELAY', 1000), // milliseconds
     ],
+
+    'paps' => [
+        'api_url' => env('PAPS_API_URL', 'https://api.papslogistics.com'),
+        'client_id' => env('PAPS_CLIENT_ID'),
+        'client_secret' => env('PAPS_CLIENT_SECRET'),
+        'default_vehicle_type' => env('PAPS_DEFAULT_VEHICLE_TYPE', 'SCOOTER'),
+        'default_delivery_type' => env('PAPS_DEFAULT_DELIVERY_TYPE', 'STANDARD'),
+        'webhook_secret' => env('PAPS_WEBHOOK_SECRET'),
+        'timeout' => env('PAPS_TIMEOUT', 30),
+    ],
 ];  

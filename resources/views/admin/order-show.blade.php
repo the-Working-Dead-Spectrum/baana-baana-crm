@@ -308,7 +308,14 @@
                     @endif
 
                     {{-- Créateurs associés --}}
+                    {{-- Créateurs associés --}}
                     @if ($order->creators->count() > 0)
+                        @php
+                            $progress = $order->getCompletionProgress();
+                            $completedCreators = $order->getCompletedCreators();
+                            $pendingCreators = $order->getPendingCreators();
+                        @endphp
+
                         <div class="bg-white shadow-sm rounded-lg p-6">
                             <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                 <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor"
@@ -319,27 +326,93 @@
                                 Créateurs ({{ $order->creators->count() }})
                             </h2>
 
+                            {{-- Liste des créateurs avec statut --}}
                             <div class="space-y-3">
-                                @foreach ($order->creators as $creator)
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                                        <div>
-                                            <div class="font-medium text-sm">{{ $creator->name }}</div>
-                                            @if ($creator->pivot->creator_total)
-                                                <div class="text-xs text-gray-500 mt-1">
-                                                    {{ number_format($creator->pivot->creator_total, 0, ',', ' ') }} FCFA
-                                                </div>
+                                @foreach ($order->creators as $c)
+                                    <div
+                                        class="flex items-center justify-between p-3 rounded-md
+                    {{ (bool) $c->pivot->is_completed ? 'bg-green-50 border border-green-100' : 'bg-gray-50 border border-gray-100' }}">
+                                        <div class="flex items-center gap-2">
+                                            {{-- Icône statut --}}
+                                            @if ((bool) $c->pivot->is_completed)
+                                                <span
+                                                    class="flex-shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                                                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor"
+                                                        viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </span>
+                                            @else
+                                                <span
+                                                    class="flex-shrink-0 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center">
+                                                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor"
+                                                        viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                </span>
                                             @endif
+
+                                            <div>
+                                                <div class="font-medium text-sm text-gray-900">{{ $c->name }}</div>
+                                                <div class="text-xs text-gray-500 mt-0.5">
+                                                    @if ((bool) $c->pivot->is_completed)
+                                                        Terminé
+                                                        @if ($c->pivot->completed_at)
+                                                            ·
+                                                            {{ \Carbon\Carbon::parse($c->pivot->completed_at)->format('d/m à H:i') }}
+                                                        @endif
+                                                    @else
+                                                        En attente
+                                                    @endif
+                                                </div>
+                                                @if ($c->pivot->creator_total)
+                                                    <div class="text-xs font-medium text-blue-600 mt-0.5">
+                                                        {{ number_format($c->pivot->creator_total, 0, ',', ' ') }} FCFA
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
 
-                                        @if ($creator->commission_rate)
+                                        @if ($c->commission_rate)
                                             <span
-                                                class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-semibold">
-                                                {{ $creator->commission_rate }}%
+                                                class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-semibold flex-shrink-0">
+                                                {{ $c->commission_rate }}%
                                             </span>
                                         @endif
                                     </div>
                                 @endforeach
                             </div>
+
+                            {{-- Barre de progression (uniquement si multi-créateurs) --}}
+                            @if ($order->creators->count() > 1)
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <span class="text-xs text-gray-500">Progression globale</span>
+                                        <span class="text-xs font-bold text-gray-700">
+                                            {{ $progress['completed'] }}/{{ $progress['total'] }}
+                                        </span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full transition-all duration-300
+                        {{ $progress['completed'] === $progress['total'] ? 'bg-green-500' : 'bg-blue-500' }}"
+                                            style="width: {{ $progress['total'] > 0 ? ($progress['completed'] / $progress['total']) * 100 : 0 }}%">
+                                        </div>
+                                    </div>
+                                    <p
+                                        class="text-xs mt-2 font-medium
+                    {{ $progress['completed'] === $progress['total'] ? 'text-green-600' : 'text-yellow-600' }}">
+                                        @if ($progress['completed'] === $progress['total'])
+                                            ✅ Tous les créateurs ont terminé
+                                        @else
+                                            ⏳ {{ $progress['pending'] }} créateur(s) en attente
+                                        @endif
+                                    </p>
+                                </div>
+                            @endif
                         </div>
                     @endif
 

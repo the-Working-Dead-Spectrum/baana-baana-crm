@@ -697,7 +697,7 @@ class AdminDashboardController extends Controller
         $validSortColumns = ['order_number', 'customer_name', 'status', 'total', 'order_date'];
         $sort_by = in_array($sort_by, $validSortColumns) ? $sort_by : 'order_date';
         $sort_order = in_array($sort_order, ['asc', 'desc']) ? $sort_order : 'desc';
-        
+
         $query->orderBy($sort_by, $sort_order);
 
         // Pagination
@@ -713,7 +713,7 @@ class AdminDashboardController extends Controller
 
         // Liste des créateurs pour le filtre
         $creators = Creator::orderBy('name')->get();
-        
+
         return view('admin.orders', [
             'orders' => $orders,
             'filters' => $filters,
@@ -732,8 +732,16 @@ class AdminDashboardController extends Controller
      */
     public function showOrder($id)
     {
-        $order = Order::with(['creators', 'items'])
-            ->findOrFail($id);
+        $order = Order::with([
+            'items',
+            'creators' => function ($query) {
+                $query->withPivot([
+                    'is_completed',
+                    'completed_at',
+                    'creator_total',
+                ]);
+            }
+        ])->findOrFail($id);
 
         return view('admin.order-show', [
             'order' => $order,

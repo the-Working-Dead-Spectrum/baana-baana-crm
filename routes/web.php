@@ -233,7 +233,26 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:logistic')->group(function () {
         Route::get('/logistics/dashboard', [LogisticsController::class, 'dashboard'])
             ->name('logistics.dashboard');
+        
+        Route::get('/logistics/orders', [LogisticsController::class, 'orders'])
+            ->name('logistics.orders');
+        
+        Route::get('/logistics/orders/{order}', [LogisticsController::class, 'showOrder'])
+            ->name('logistics.orders.show');
+        
+        Route::post('/logistics/orders/{order}/pickup', [LogisticsController::class, 'createPickup'])
+            ->name('logistics.orders.create-pickup');
+        
+        Route::post('/logistics/orders/{order}/refresh-status', [LogisticsController::class, 'refreshStatus'])
+            ->name('logistics.orders.refresh-status');
+        
+        Route::post('/logistics/orders/{order}/calculate-fees', [LogisticsController::class, 'calculateFees'])
+            ->name('logistics.orders.calculate-fees');
     });
+
+    // Webhook PAPS (sans authentification car appelé par PAPS)
+    Route::post('/api/webhooks/paps/status', [LogisticsController::class, 'handleWebhook'])
+        ->name('webhooks.paps.status');
 });
 
 require __DIR__ . '/auth.php';

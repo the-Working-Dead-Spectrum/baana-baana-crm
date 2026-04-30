@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
@@ -81,6 +82,8 @@ class Order extends Model
                 'product_count',
                 'total_quantity',
                 'metadata',
+                'is_completed',
+                'completed_at',
             ])
             ->withTimestamps();
     }
@@ -102,7 +105,7 @@ class Order extends Model
     public function getCreatorItems($creator)
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return collect();
         }
@@ -119,7 +122,7 @@ class Order extends Model
     public function getCreatorTotal($creator): float
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return 0;
         }
@@ -136,7 +139,7 @@ class Order extends Model
     public function getInvolvedCreators()
     {
         $brandSlugs = $this->items()->pluck('brand_slug')->unique()->filter();
-        
+
         return Creator::whereIn('brand_slug', $brandSlugs)
             ->where('status', 'active')
             ->get();
@@ -151,13 +154,90 @@ class Order extends Model
     public function involvesCreator($creator): bool
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return false;
         }
 
         return $this->items()->where('brand_slug', $brandSlug)->exists();
     }
+
+    public function allCreatorsCompleted(): bool
+    {
+        $totalCreators = $this->creators()->count();
+
+        if ($totalCreators === 0) {
+            return false;
+        }
+
+        $completedCreators = $this->creators()
+            ->wherePivot('is_completed', true)
+            ->count();
+
+        return $completedCreators === $totalCreators;
+    }
+
+    /**
+     * Obtenir le nombre de créateurs ayant terminé leur partie
+     *
+     * @return array ['completed' => int, 'total' => int, 'pending' => int]
+     */
+    public function getCompletionProgress(): array
+    {
+        $totalCreators = $this->creators()->count();
+        $completedCreators = $this->creators()
+            ->wherePivot('is_completed', true)
+            ->count();
+
+        return [
+            'completed' => $completedCreators,
+            'total' => $totalCreators,
+            'pending' => $totalCreators - $completedCreators,
+        ];
+    }
+
+    /**
+     * Vérifier si un créateur spécifique a terminé sa partie
+     *
+     * @param Creator|int $creator
+     * @return bool
+     */
+    public function hasCreatorCompleted($creator): bool
+    {
+        $creatorId = $creator instanceof Creator ? $creator->id : $creator;
+
+        $pivotRecord = DB::table('creator_order')
+            ->where('order_id', $this->id)
+            ->where('creator_id', $creatorId)
+            ->first();
+
+        return $pivotRecord && $pivotRecord->is_completed;
+    }
+
+    /**
+     * Obtenir les créateurs qui n'ont pas encore terminé
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingCreators()
+    {
+        return $this->creators()
+            ->wherePivot('is_completed', false)
+            ->get();
+    }
+
+    /**
+     * Obtenir les créateurs qui ont terminé
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getCompletedCreators()
+    {
+        return $this->creators()
+            ->wherePivot('is_completed', true)
+            ->get();
+    }
+
 
     // Scopes existants
     public function scopeForCreator($query, $creatorId)
@@ -186,11 +266,11 @@ class Order extends Model
     public function scopeInPeriod($query, $startDate, $endDate = null)
     {
         $query->where('order_date', '>=', $startDate);
-        
+
         if ($endDate) {
             $query->where('order_date', '<=', $endDate);
         }
-        
+
         return $query;
     }
 
