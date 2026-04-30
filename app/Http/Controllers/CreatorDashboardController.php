@@ -90,7 +90,7 @@ class CreatorDashboardController extends Controller
             function () use ($creator) {
                 // Requête de base pour les commandes complétées
                 $completedOrders = $creator->orders()->where('status', 'completed');
-                
+
                 // Mois en cours
                 $currentMonthOrders = $creator->orders()
                     ->where('status', 'completed')
@@ -433,6 +433,11 @@ class CreatorDashboardController extends Controller
 
         $order = $creator->orders()->findOrFail($id);
 
+        if ($order->hasCreatorCompleted($creator)) {
+            return redirect()->route('creator.orders.show', $id)
+                ->with('info', 'Vous avez déjà marqué votre partie comme terminée pour cette commande.');
+        }
+
         if ($order->status === 'completed') {
             return redirect()->route('creator.orders.show', $id)
                 ->with('info', 'Cette commande est déjà terminée.');
@@ -444,21 +449,34 @@ class CreatorDashboardController extends Controller
             // ✅ Transaction rapide
             DB::beginTransaction();
 
-            $order->status = 'completed';
-            $order->order_date = now();
-            $order->save();
+            // Marquer la participation de ce créateur comme terminée
+            $order->creators()->updateExistingPivot($creator->id, [
+                'is_completed' => true,
+                'completed_at' => now(),
+            ]);
+
+            // Vérifier si TOUS les créateurs ont terminé
+            $progress = $order->getCompletionProgress();
+            $allCompleted = $order->allCreatorsCompleted();
+
+            // Seulement si tous les créateurs ont terminé, on passe la commande à 'completed'
+            if ($allCompleted) {
+                $order->status = 'completed';
+                $order->order_date = now();
+                $order->save();
+            }
 
             DB::commit();
 
             // ✅ Synchronisation WordPress avec timeout court (ne bloque plus)
-            if ($order->wp_order_id) {
+            if ($allCompleted && $order->wp_order_id) {
                 // Ces appels retournent immédiatement grâce aux timeouts courts
                 $synced = $this->orderSyncService->syncOrderUpdateToWordPress($order, 'completion');
 
                 if ($synced) {
                     $this->orderSyncService->addOrderNote(
                         $order->wp_order_id,
-                        "Commande marquée comme terminée par {$creator->name} (CRM)",
+                        "Commande marquée comme terminée par {$creator->name} (CRM) - Tous les créateurs ont terminé",
                         false
                     );
                 }
@@ -470,11 +488,25 @@ class CreatorDashboardController extends Controller
                     'old_status' => $oldStatus,
                     'wp_synced' => $synced,
                 ]);
+            } elseif (!$allCompleted) {
+                Log::info("Creator marked their part as completed, waiting for others", [
+                    'order_id' => $order->id,
+                    'creator_id' => $creator->id,
+                    'completed' => $progress['completed'],
+                    'total' => $progress['total'],
+                    'pending' => $progress['pending'],
+                ]);
             }
 
             // ✅ Réponse rapide à l'utilisateur
-            return redirect()->route('creator.orders.show', $id)
-                ->with('success', 'La commande a été marquée comme terminée avec succès.');
+            if ($allCompleted) {
+                return redirect()->route('creator.orders.show', $id)
+                    ->with('success', 'La commande a été marquée comme terminée. Tous les créateurs ont terminé leur partie.');
+            } else {
+                $pendingCount = $progress['pending'];
+                return redirect()->route('creator.orders.show', $id)
+                    ->with('success', "Votre partie est terminée. En attente de {$pendingCount} autre(s) créateur(s).");
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 

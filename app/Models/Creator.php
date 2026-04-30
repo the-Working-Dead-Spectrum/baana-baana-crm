@@ -59,8 +59,11 @@ class Creator extends Model
                 'product_count',
                 'total_quantity',
                 'metadata',
+                'is_completed',
+                'completed_at',
             ])
-            ->withTimestamps();
+            ->withTimestamps()
+            ->withCasts(['is_completed' => 'boolean']);
     }
 
     /**

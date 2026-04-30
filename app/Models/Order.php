@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Order extends Model
 {
@@ -35,17 +36,6 @@ class Order extends Model
         'metadata',
         'notes',
         'last_synced_at',
-        // Champs PAPS
-        'paps_task_id',
-        'paps_order_uid',
-        'paps_status',
-        'paps_delivery_details',
-        'paps_pickup_scheduled_at',
-        'paps_picked_at',
-        'paps_delivered_at',
-        'paps_delivery_fee',
-        'paps_status_history',
-        'paps_metadata',
     ];
 
     protected $casts = [
@@ -61,14 +51,6 @@ class Order extends Model
         'total' => 'decimal:2',
         'creator_total' => 'decimal:2',
         'metadata' => 'array',
-        // Champs PAPS
-        'paps_delivery_details' => 'array',
-        'paps_pickup_scheduled_at' => 'datetime',
-        'paps_picked_at' => 'datetime',
-        'paps_delivered_at' => 'datetime',
-        'paps_delivery_fee' => 'decimal:2',
-        'paps_status_history' => 'array',
-        'paps_metadata' => 'array',
     ];
 
     /**
@@ -100,6 +82,8 @@ class Order extends Model
                 'product_count',
                 'total_quantity',
                 'metadata',
+                'is_completed',
+                'completed_at',
             ])
             ->withTimestamps();
     }
@@ -121,7 +105,7 @@ class Order extends Model
     public function getCreatorItems($creator)
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return collect();
         }
@@ -138,7 +122,7 @@ class Order extends Model
     public function getCreatorTotal($creator): float
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return 0;
         }
@@ -155,7 +139,7 @@ class Order extends Model
     public function getInvolvedCreators()
     {
         $brandSlugs = $this->items()->pluck('brand_slug')->unique()->filter();
-        
+
         return Creator::whereIn('brand_slug', $brandSlugs)
             ->where('status', 'active')
             ->get();
@@ -170,13 +154,90 @@ class Order extends Model
     public function involvesCreator($creator): bool
     {
         $brandSlug = $creator instanceof Creator ? $creator->brand_slug : Creator::find($creator)?->brand_slug;
-        
+
         if (!$brandSlug) {
             return false;
         }
 
         return $this->items()->where('brand_slug', $brandSlug)->exists();
     }
+
+    public function allCreatorsCompleted(): bool
+    {
+        $totalCreators = $this->creators()->count();
+
+        if ($totalCreators === 0) {
+            return false;
+        }
+
+        $completedCreators = $this->creators()
+            ->wherePivot('is_completed', true)
+            ->count();
+
+        return $completedCreators === $totalCreators;
+    }
+
+    /**
+     * Obtenir le nombre de créateurs ayant terminé leur partie
+     *
+     * @return array ['completed' => int, 'total' => int, 'pending' => int]
+     */
+    public function getCompletionProgress(): array
+    {
+        $totalCreators = $this->creators()->count();
+        $completedCreators = $this->creators()
+            ->wherePivot('is_completed', true)
+            ->count();
+
+        return [
+            'completed' => $completedCreators,
+            'total' => $totalCreators,
+            'pending' => $totalCreators - $completedCreators,
+        ];
+    }
+
+    /**
+     * Vérifier si un créateur spécifique a terminé sa partie
+     *
+     * @param Creator|int $creator
+     * @return bool
+     */
+    public function hasCreatorCompleted($creator): bool
+    {
+        $creatorId = $creator instanceof Creator ? $creator->id : $creator;
+
+        $pivotRecord = DB::table('creator_order')
+            ->where('order_id', $this->id)
+            ->where('creator_id', $creatorId)
+            ->first();
+
+        return $pivotRecord && $pivotRecord->is_completed;
+    }
+
+    /**
+     * Obtenir les créateurs qui n'ont pas encore terminé
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getPendingCreators()
+    {
+        return $this->creators()
+            ->wherePivot('is_completed', false)
+            ->get();
+    }
+
+    /**
+     * Obtenir les créateurs qui ont terminé
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getCompletedCreators()
+    {
+        return $this->creators()
+            ->wherePivot('is_completed', true)
+            ->get();
+    }
+
 
     // Scopes existants
     public function scopeForCreator($query, $creatorId)
@@ -205,11 +266,11 @@ class Order extends Model
     public function scopeInPeriod($query, $startDate, $endDate = null)
     {
         $query->where('order_date', '>=', $startDate);
-        
+
         if ($endDate) {
             $query->where('order_date', '<=', $endDate);
         }
-        
+
         return $query;
     }
 
@@ -231,57 +292,6 @@ class Order extends Model
         return $query->whereHas('items', function ($q) use ($brandSlug) {
             $q->where('brand_slug', $brandSlug);
         });
-    }
-
-    /**
-     * Scope : Commandes prêtes pour PAPS (statut logistics et non encore envoyées à PAPS)
-     */
-    public function scopeReadyForPaps($query)
-    {
-        return $query->where('status', 'logistics')
-            ->whereNull('paps_task_id');
-    }
-
-    /**
-     * Scope : Commandes avec une tâche PAPS active
-     */
-    public function scopeWithPapsTask($query)
-    {
-        return $query->whereNotNull('paps_task_id');
-    }
-
-    /**
-     * Scope : Commandes en transit chez PAPS
-     */
-    public function scopeInTransit($query)
-    {
-        return $query->whereIn('paps_status', ['to_pick', 'picked', 'in_transit']);
-    }
-
-    /**
-     * Vérifier si la commande a été envoyée à PAPS
-     */
-    public function hasPapsTask(): bool
-    {
-        return !empty($this->paps_task_id);
-    }
-
-    /**
-     * Mettre à jour le statut PAPS et l'historique
-     */
-    public function updatePapsStatus(string $status, ?array $historyEntry = null): void
-    {
-        $this->paps_status = $status;
-        
-        if ($historyEntry) {
-            $history = $this->paps_status_history ?? [];
-            $history[] = array_merge($historyEntry, [
-                'date' => now()->toIso8601String(),
-            ]);
-            $this->paps_status_history = $history;
-        }
-        
-        $this->save();
     }
 
     // Méthodes utilitaires existantes
