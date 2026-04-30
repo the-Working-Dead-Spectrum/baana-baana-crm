@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.h-12-custom {
+    height: 9rem;
+}
+
+@media (min-width: 1024px) {
+    .lg\:pl-64 {
+        padding-left: 16rem;
+    }
+    .lg\:w-64 {
+        width: 16rem;
+    }
+}
