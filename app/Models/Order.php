@@ -35,6 +35,17 @@ class Order extends Model
         'metadata',
         'notes',
         'last_synced_at',
+        // Champs PAPS
+        'paps_task_id',
+        'paps_order_uid',
+        'paps_status',
+        'paps_delivery_details',
+        'paps_pickup_scheduled_at',
+        'paps_picked_at',
+        'paps_delivered_at',
+        'paps_delivery_fee',
+        'paps_status_history',
+        'paps_metadata',
     ];
 
     protected $casts = [
@@ -50,6 +61,14 @@ class Order extends Model
         'total' => 'decimal:2',
         'creator_total' => 'decimal:2',
         'metadata' => 'array',
+        // Champs PAPS
+        'paps_delivery_details' => 'array',
+        'paps_pickup_scheduled_at' => 'datetime',
+        'paps_picked_at' => 'datetime',
+        'paps_delivered_at' => 'datetime',
+        'paps_delivery_fee' => 'decimal:2',
+        'paps_status_history' => 'array',
+        'paps_metadata' => 'array',
     ];
 
     /**
@@ -212,6 +231,57 @@ class Order extends Model
         return $query->whereHas('items', function ($q) use ($brandSlug) {
             $q->where('brand_slug', $brandSlug);
         });
+    }
+
+    /**
+     * Scope : Commandes prêtes pour PAPS (statut logistics et non encore envoyées à PAPS)
+     */
+    public function scopeReadyForPaps($query)
+    {
+        return $query->where('status', 'logistics')
+            ->whereNull('paps_task_id');
+    }
+
+    /**
+     * Scope : Commandes avec une tâche PAPS active
+     */
+    public function scopeWithPapsTask($query)
+    {
+        return $query->whereNotNull('paps_task_id');
+    }
+
+    /**
+     * Scope : Commandes en transit chez PAPS
+     */
+    public function scopeInTransit($query)
+    {
+        return $query->whereIn('paps_status', ['to_pick', 'picked', 'in_transit']);
+    }
+
+    /**
+     * Vérifier si la commande a été envoyée à PAPS
+     */
+    public function hasPapsTask(): bool
+    {
+        return !empty($this->paps_task_id);
+    }
+
+    /**
+     * Mettre à jour le statut PAPS et l'historique
+     */
+    public function updatePapsStatus(string $status, ?array $historyEntry = null): void
+    {
+        $this->paps_status = $status;
+        
+        if ($historyEntry) {
+            $history = $this->paps_status_history ?? [];
+            $history[] = array_merge($historyEntry, [
+                'date' => now()->toIso8601String(),
+            ]);
+            $this->paps_status_history = $history;
+        }
+        
+        $this->save();
     }
 
     // Méthodes utilitaires existantes
